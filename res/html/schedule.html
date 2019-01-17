@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Schedule</title>
+    <script language="JavaScript">
+
+        var standardProgress = [
+            {"name": "未知进度", "color": "FF0000"},
+            {"name": "未宣讲", "color": "CCCCFF"},
+            {"name": "未开始", "color": "FF88FF"},
+            {"name": "进行中", "color": "FFFF66"},
+            {"name": "联调中", "color": "CCFFCC"},
+            {"name": "验收中", "color": "CCFFCC"},
+            {"name": "提测中", "color": "FFDD99"},
+            {"name": "已完成", "color": "CCCCCC"},
+            {"name": "长期", "color": "CCCCCC"},
+            {"name": "暂停", "color": "CCCCCC"},
+        ];
+
+        var textProgress = {
+            "未知进度": 0,
+            "未宣讲": 1,
+            "待宣讲": 1,
+            "宣讲": 1,
+            "未开始": 2,
+            "进行中": 3,
+            "进行": 3,
+            "联调": 4,
+            "待联调": 4,
+            "联调中": 4,
+            "待验收": 5,
+            "验收中": 5,
+            "提测": 6,
+            "待测试": 6,
+            "已提测": 6,
+            "提测中": 6,
+            "测试中": 6,
+            "已完成": 7,
+            "完成": 7,
+            "长期": 8,
+            "暂停": 9,
+        };
+
+        function progressClick(event) {
+            var index = textProgress[event.currentTarget.textContent] + 1;
+            var progress = standardProgress[index % standardProgress.length];
+            event.currentTarget.textContent = progress["name"];
+            event.currentTarget.style.backgroundColor = "#" + progress["color"];
+        }
+
+        function importData(e) {
+            let fields;
+            var textarea = document.getElementById("text");
+            const text = textarea.value;
+            let lines = text.split("\n");
+
+            let data = [];
+            let newLines = [];
+            for (i in lines) {
+                let line = lines[i];
+                line = line.trim();
+                if (line.length === 0) {
+                    continue;
+                }
+                if (line.indexOf("---") > 0) {
+                    data = [];
+                    continue
+                }
+                fields = line.split("\|");
+                if (fields.length !== 7) {
+                    continue;
+                }
+                var dataItem = {};
+                data[data.length] = dataItem;
+                dataItem["desc"] = fields[1].trim();
+                dataItem["name"] = fields[2].trim();
+                dataItem["endTime"] = fields[3].trim();
+                var progress = fields[4].trim();
+                var progressIndex = textProgress[progress];
+                if (progressIndex == null) {
+                    progressIndex = 0;
+                }
+                dataItem["progress"] = standardProgress[progressIndex]["name"];
+                dataItem["remark"] = fields[5].trim();
+            }
+
+            function sortNumber(a, b) {
+                x1 = a.name.toUpperCase();
+                x2 = b.name.toUpperCase();
+                if (x1 < x2) {
+                    return -1;
+                }
+                if (x1 > x2) {
+                    return 1;
+                }
+                x1 = a.progress.toUpperCase();
+                x2 = b.progress.toUpperCase();
+                if (x1 < x2) {
+                    return -1;
+                }
+                if (x1 > x2) {
+                    return 1;
+                }
+                return 0;
+            }
+
+            data = data.sort(sortNumber);
+
+            var tb = document.getElementById("tb");
+            for (i in data) {
+                fields = data[i];
+                var tr;
+                var td;
+                var input;
+                tr = document.createElement("tr");
+
+                td = document.createElement("td");
+                input = document.createElement("input");
+                input.setAttribute("type", "text");
+                input.setAttribute("value", fields["desc"]);
+                input.setAttribute("style", "width: 99%; padding: 0; margin: 0; line-height: 25px; border: 0; font:400 14px system-ui;");
+                td.appendChild(input);
+                td.setAttribute("style", "padding: 0; margin: 0;");
+                tr.appendChild(td);
+
+                td = document.createElement("td");
+                input = document.createElement("input");
+                input.setAttribute("type", "text");
+                input.setAttribute("value", fields["name"]);
+                input.setAttribute("style", "text-align:center; width: 99%; padding: 0; margin: 0; line-height: 25px; border: 0; font:400 14px system-ui;");
+                td.appendChild(input);
+                td.setAttribute("style", "padding: 0; margin: 0;");
+                tr.appendChild(td);
+
+                td = document.createElement("td");
+                input = document.createElement("input");
+                input.setAttribute("type", "text");
+                input.setAttribute("value", fields["endTime"]);
+                input.setAttribute("style", "text-align:center; width: 99%; padding: 0; margin: 0; line-height: 25px; border: 0; font:400 14px system-ui;");
+                td.appendChild(input);
+                td.setAttribute("style", "padding: 0; margin: 0;");
+                tr.appendChild(td);
+
+                td = document.createElement("td");
+                td.addEventListener("click", progressClick);
+                tdContent = document.createTextNode(fields["progress"]);
+                td.appendChild(tdContent);
+                var progress = standardProgress[textProgress[fields["progress"]]];
+                var color = progress["color"];
+                td.setAttribute("style", "text-align:center; padding: 0; margin: 0; background-color: #" + color);
+                tr.appendChild(td);
+
+                td = document.createElement("td");
+                input = document.createElement("input");
+                input.setAttribute("type", "text");
+                input.setAttribute("value", fields["remark"]);
+                input.setAttribute("style", "width: 99%; padding: 0; margin: 0; line-height: 25px; border: 0; font:400 14px system-ui;");
+                td.appendChild(input);
+                td.setAttribute("style", "padding: 0; margin: 0;");
+                tr.appendChild(td);
+
+                tb.appendChild(tr);
+            }
+            textarea.hidden = true;
+        }
+
+        function exportData(e) {
+
+            var data = "\n文档维护：\n\n| 任务描述 | 负责人 | 截止日期 | 开发进度 | 备注 |\n| :--- | :---: | :--- | :---: | :--- |";
+
+            var tb = document.getElementById("tb");
+            var trs = tb.getElementsByTagName("tr");
+            for (i = 0; i < trs.length; i++) {
+                tr = trs[i];
+                console.info(tr);
+                var tds = tr.getElementsByTagName("td");
+                data += "\n| ";
+                data += tds[0].getElementsByTagName("input")[0].value + " | ";
+                data += tds[1].getElementsByTagName("input")[0].value + " | ";
+                data += tds[2].getElementsByTagName("input")[0].value + " | ";
+                data += tds[3].textContent + " | ";
+                data += tds[4].getElementsByTagName("input")[0].value + " |";
+            }
+            var textarea = document.getElementById("text");
+            textarea.value = data;
+            textarea.hidden = false;
+            tb.innerHTML = "";
+            console.info(data);
+        }
+    </script>
+</head>
+<body>
+<div style="width: 100%;text-align:center;">
+    <div style="text-align:left; width: 800px; margin:auto;">
+        <input type="button" value="导入" onclick="importData()"/>
+        <input type="button" value="导出" onclick="exportData()"/>
+        <table border="1" cellspacing="0"
+               style="border-collapse: collapse; width:100%; min-height: 25px; line-height: 25px;">
+            <thead style="text-align:center; background-color: lightgray">
+            <tr>
+                <td style="width: 250px;">任务描述</td>
+                <td style="width: 70px;">负责人</td>
+                <td style="width: 70px;">截止日期</td>
+                <td style="width: 70px;">开发进度</td>
+                <td>备注</td>
+            </tr>
+            </thead>
+            <tbody id="tb" style="text-align:left; font:400 14px system-ui;"></tbody>
+        </table>
+        <textarea id="text" style="width: 794px; height: 300px; margin-top: 5px;"></textarea>
+    </div>
+</div>
+</body>
+</html>
